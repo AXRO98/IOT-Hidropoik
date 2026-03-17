@@ -41,4 +41,4 @@ v0.4.0-beta
 v0.1.0-beta 16-03-2026 23:10: Membuat web dashboard dan Membuat costomize sidebar
 v0.1.1-beta 17-03-2026 02:40: Animasi preloader
 v0.1.2-beta 17-03-2026 04:00: Customize Sidebar di buat agar bisa simpan localstorage settingannya
-v0.2.0-beta 17-03-2026 20:30: Sudah ada login, Database, dan proteksi halaman.
+v0.2.0-beta 17-03-2026 20:30: Sudah ada login, Database, dan proteksi halaman. sudah menambahkan favicon.
