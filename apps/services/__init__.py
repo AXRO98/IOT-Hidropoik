@@ -10,34 +10,27 @@ from apps.utils import log_info, log_success, log_warning
 
 from apps.services.websocket_service import websocket_service, WebSocketService
 
-
 def init_services(app):
-    """
-    Inisialisasi semua services dengan Flask app
-    
-    Args:
-        app: Flask application instance
-    """
+    """Initialize all services except MQTT (already done separately)"""
     log_info("Initializing services...")
     
-    # Inisialisasi WebSocket Service
+    # Initialize WebSocket service
+    from apps.services.websocket_service import websocket_service
     websocket_service.init_app(app)
     
-    # Cek apakah perlu menjalankan simulasi
-    enable_simulation = app.config.get('ENABLE_SIMULATION', False)
+    # Debug: cek nilai ENABLE_SIMULATION
+    sim_enabled = app.config.get('ENABLE_SIMULATION', False)
+    log_info(f"ENABLE_SIMULATION = {sim_enabled} (type: {type(sim_enabled)})")
     
-    # Jalankan simulasi jika enable simulation = True
-    if enable_simulation:
+    # Optional: start simulation if enabled
+    if sim_enabled:
         websocket_service.start_simulation()
         log_info("Simulasi data random via WebSocket dimulai")
     else:
-        log_info("Simulasi data dimatikan (ENABLE_SIMULATION=False)")
+        log_info("Simulasi data random TIDAK dimulai")
     
     log_success("All services initialized")
-    
-    return {
-        'websocket': websocket_service
-    }
+    print()
 
 
 __all__ = [

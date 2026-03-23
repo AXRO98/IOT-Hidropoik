@@ -34,7 +34,7 @@ v0.2.*-beta
 v0.3.0-beta
 - GET data dari sensor dengan MQTT
 - Simpa data sensor
-- dashboard jadi realtime menggunakan socket
+- dashboard jadi realtime menggunakan socketio
 
 v0.4.0-beta
 - buat page profile user

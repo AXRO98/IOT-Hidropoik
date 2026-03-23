@@ -7,6 +7,8 @@ from flask import Flask, redirect
 from importlib import import_module
 
 from apps.extensions import login_manager, socketio
+from apps.utils import log_info, log_success, log_warning, log_error
+from apps.services.mqtt_client import mqtt_client
 
 # -------------------------------------------------
 # CONFIG
@@ -47,6 +49,34 @@ def register_handlers(app: Flask):
         return redirect("/login")
 
 # -------------------------------------------------
+# MQTT INTEGRATION
+# -------------------------------------------------
+
+def init_mqtt(app: Flask):
+    """
+    Inisialisasi MQTT client dan integrasi dengan WebSocket.
+    Hanya dijalankan sekali pada proses utama Flask.
+    """
+    # Cek apakah ini proses utama (bukan reloader)
+    if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
+        log_info("Skipping MQTT init - reloader process")
+        return None, None
+
+    from apps.services.mqtt_client import mqtt_client
+    from apps.services.websocket_service import websocket_service
+
+    # Initialize MQTT client
+    log_info("Initializing MQTT client...")
+    mqtt_client.init_app(app)
+
+    # Link MQTT client to WebSocket service
+    websocket_service.set_mqtt_client(mqtt_client)
+
+    log_success("MQTT and WebSocket integration initialized")
+
+    return mqtt_client, websocket_service
+
+# -------------------------------------------------
 # APP FACTORY
 # -------------------------------------------------
 
@@ -65,7 +95,7 @@ def create_app(config):
     # Load config
     app.config.from_object(config)
 
-    # Register core components
+    # Register core components (tanpa MQTT)
     register_extensions(app)
     register_blueprints(app)
     register_handlers(app)

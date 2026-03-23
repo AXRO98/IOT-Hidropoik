@@ -3,10 +3,12 @@ File        : __init__.py
 Author      : Keyfin Agustio Suratman
 Description : Utility functions for IoT Hidroponik
 Created     : 2026-03-16
+Updated     : 2026-03-23
 """
 
 import sys
 from datetime import datetime
+from colorama import init, Fore, Back, Style
 
 # Import fungsi-fungsi yang sudah ada
 from .logger import (
@@ -19,53 +21,58 @@ from .logger import (
     print_startup_banner
 )
 
-# Tambahkan fungsi-fungsi baru untuk MQTT dan WebSocket
+# Initialize Colorama
+init(autoreset=True)
 
 def log_mqtt(direction, topic, message=""):
     """Log MQTT messages with custom formatting"""
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    timestamp = datetime.now().strftime("%H:%M:%S")
     
-    # ANSI color codes
+    # Map directions to Colorama colors
     colors = {
-        'SEND': '\033[94m',      # Blue
-        'RECV': '\033[92m',      # Green
-        'PUB-ACK': '\033[93m',   # Yellow
-        'ERROR': '\033[91m',     # Red
-        'RESET': '\033[0m'
+        'CONNECTING': Fore.GREEN,
+        'CONNECTED': Fore.GREEN,
+        'DISCONNECT': Fore.RED,
+        'SEND': Fore.BLUE,
+        'RECV': Fore.GREEN,
+        'PUB-ACK': Fore.YELLOW,
+        'ERROR': Fore.RED,
+        'RESET': Style.RESET_ALL
     }
     
-    color = colors.get(direction, '\033[0m')
+    color = colors.get(direction, Style.RESET_ALL)
     direction_str = f"[MQTT-{direction}]"
     
     # Truncate long messages
     if len(message) > 200:
         message = message[:200] + "..."
     
-    print(f"{color}{direction_str:<15} {topic:<30} {message}{colors['RESET']}")
+    print(f"{Fore.WHITE}[{timestamp}] {color}{direction_str:<15} {topic:<30} {message}{Style.RESET_ALL}")
     sys.stdout.flush()  # Force flush untuk real-time logging
 
+def log_websocket(action, client_id, details="", username=None):
+    """Log WebSocket messages with Colorama"""
+    timestamp = datetime.now().strftime("%H:%M:%S")
 
-def log_websocket(action, client_id, details=""):
-    """Log WebSocket events with custom formatting"""
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    
     colors = {
-        'CONNECT': '\033[92m',    # Green
-        'DISCONNECT': '\033[91m', # Red
-        'JOIN': '\033[94m',       # Blue
-        'LEAVE': '\033[93m',      # Yellow
-        'MESSAGE': '\033[95m',    # Magenta
-        'EMIT-ALL': '\033[96m',   # Cyan
-        'EMIT-ROOM': '\033[96m',  # Cyan
-        'EMIT-CLIENT': '\033[96m', # Cyan
-        'RESET': '\033[0m'
+        'CONNECT': Fore.GREEN,
+        'DISCONNECT': Fore.RED,
+        'JOIN': Fore.BLUE,
+        'LEAVE': Fore.YELLOW,
+        'MESSAGE': Fore.MAGENTA,
+        'EMIT-ALL': Fore.CYAN,
+        'EMIT-ROOM': Fore.CYAN,
+        'EMIT-CLIENT': Fore.CYAN,
+        'RESET': Style.RESET_ALL
     }
     
-    color = colors.get(action, '\033[0m')
-    action_str = f"[WS-{action}]"
-    
-    client_short = client_id[:8] + "..." if len(client_id) > 8 else client_id
-    print(f"{color}{action_str:<15} {client_short:<15} {details}{colors['RESET']}")
+    color = colors.get(action, Style.RESET_ALL)
+    action_str = f"[SOCKET-{action}]"
+
+    client_short = client_id
+    user_str = f"[{username}]" if username else ""
+
+    print(f"{Fore.WHITE}[{timestamp}] {color}{action_str:<15} {client_short:<15} {user_str} {details}{Style.RESET_ALL}")
     sys.stdout.flush()
 
 

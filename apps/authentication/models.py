@@ -9,11 +9,10 @@ class Users(UserMixin):
     Model untuk pengguna, menggunakan Flask-Login.
     """
 
-    def __init__(self, id, username, email, password):
+    def __init__(self, id, username, email):
         self.id = id
         self.username = username
         self.email = email
-        self.password = password
 
     def get_id(self):
         return str(self.id)
@@ -99,7 +98,6 @@ def load_user(user_id):
         return Users(
             id=user["id"],
             username=user["username"],
-            email=user["email"],
-            password=None  # Jangan simpan password di session
+            email=user["email"]
         )
     return None

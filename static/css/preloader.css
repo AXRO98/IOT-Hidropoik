@@ -60,7 +60,7 @@
 
 .text_robotik {
     margin-top: 20px;
-    font-size: 20px;
+    font-size: 25px;
     opacity: 0;
     animation: appearText 0.5s forwards 1.5s;
     color: white;
@@ -136,3 +136,20 @@ body {
     display: flex;
     flex-direction: column;
 }
+
+/* Teks versi - Posisi di antara tengah dan bawah */
+.version-text {
+    position: absolute;
+    bottom: 15%;
+    left: 0;
+    right: 0;
+    text-align: center;
+    margin: 0 auto;
+    font-size: 17px;
+    opacity: 1;
+    color: #6c757d;
+    font-family: 'ArialBlack', sans-serif;
+    animation: appearSubtitle 0.5s forwards 2s;
+    z-index: 10;
+}
+

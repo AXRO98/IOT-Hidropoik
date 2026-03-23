@@ -40,7 +40,8 @@ load_dotenv()
 
 DEBUG = os.getenv("DEBUG", "False") == "True"
 PORT = int(os.getenv("PORT", 5000))
-CONFIG_MODE = "Debug" if DEBUG else "Production"
+CONFIG_MODE = "Development" if DEBUG else "Production"
+
 
 # -------------------------------------------------
 # DISABLE DEFAULT FLASK LOGGING
@@ -66,6 +67,10 @@ def get_config():
 # -------------------------------------------------
 
 app = create_app(get_config())
+
+@app.context_processor
+def inject_version():
+    return {'app_version': os.getenv("VERSION", "0.0.0")}
 
 # -------------------------------------------------
 # MIDDLEWARE (REQUEST LOGGER)
@@ -134,25 +139,34 @@ def init_once():
         os.getenv("AUTHOR")
     )
 
-    log_success(f"Server starting on http://0.0.0.0:{PORT}")
-    log_info("Press CTRL+C to stop the server")
-    print()
 
 # -------------------------------------------------
 # MAIN
 # -------------------------------------------------
 
-if __name__ == "__main__":
+# run.py (bagian MAIN)
 
+if __name__ == "__main__":
     try:
         disable_flask_logging()
         register_error_handlers(app)
 
         # 🔥 FIX DOUBLE RUN (PENTING)
         if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+            # 1. Banner dicetak duluan
+            init_once()                     # mencetak banner
+
+            # 2. Keamanan
             init_security(app)
+
+            # 3. Inisialisasi MQTT (log akan muncul setelah banner)
+            from apps import init_mqtt
+            mqtt_client, ws_service = init_mqtt(app)
+            app.mqtt_client = mqtt_client
+            app.websocket_service = ws_service
+
+            # 4. Inisialisasi service lainnya (WebSocket, simulasi, dll)
             init_services(app)
-            init_once()
 
         socketio.run(
             app,

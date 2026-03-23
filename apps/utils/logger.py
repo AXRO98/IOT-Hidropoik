@@ -10,10 +10,8 @@ import datetime
 import socket
 import subprocess
 import platform
-from colorama import init, Fore, Back, Style
+from apps.utils import init, Fore, Back, Style
 
-# Initialize Colorama
-init(autoreset=True)
 
 # Konfigurasi file log - folder logs di root project (2 level ke atas)
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -280,7 +278,7 @@ def print_startup_banner(config_mode, DEBUG, PORT, VERSION=None, AUTHOR=None):
     banner += f"""{Fore.CYAN}├{'─'*80}┤{Style.RESET_ALL}
 {Fore.CYAN}│{Style.RESET_ALL} {Fore.GREEN}🌍 Access URLs:{Style.RESET_ALL:67} {Fore.CYAN}│{Style.RESET_ALL}
 {Fore.CYAN}│{Style.RESET_ALL}    • Local    : http://localhost:{PORT:<45} {Fore.CYAN}│{Style.RESET_ALL}
-{Fore.CYAN}│{Style.RESET_ALL}    • Network  : http://{local_ip}:{PORT:<41} {Style.RESET_ALL} {Fore.CYAN}│{Style.RESET_ALL}
+{Fore.CYAN}│{Style.RESET_ALL}    • Network  : http://{local_ip}:{PORT:<40} {Style.RESET_ALL} {Fore.CYAN}│{Style.RESET_ALL}
 {Fore.CYAN}└{'─'*80}┘{Style.RESET_ALL}
 """
 

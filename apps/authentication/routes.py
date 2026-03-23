@@ -4,10 +4,10 @@ Author      : Keyfin Suratman
 Description : Blueprint untuk fitur autentikasi (login, register, logout)
 """
 
-from flask                  import render_template, request, session, jsonify, url_for, redirect
-from flask_login            import login_user, logout_user, current_user, login_required
+from flask                      import render_template, request, session, jsonify, url_for, redirect
+from flask_login                import login_user, logout_user, current_user, login_required
 
-from apps.authentication    import blueprint
+from apps.authentication        import blueprint
 from apps.authentication.models import Users
 
 
@@ -44,8 +44,7 @@ def login():
         user_obj = Users(
             id=user["id"],
             username=user["username"],
-            email=user["email"],
-            password=user["password"]
+            email=user["email"]
         )
 
         login_user(user_obj)

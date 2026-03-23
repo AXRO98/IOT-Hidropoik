@@ -1,6 +1,6 @@
 {% extends "layouts/base.html" %}
 
-{% block title %}Dashboard{% endblock title %}
+{% block title %}Dashboard Hidroponik - Real-time Monitoring{% endblock title %}
 
 {% block content %}
 <!-- Content Header (Page header) -->
@@ -9,15 +9,15 @@
         <div class="row mb-2">
             <div class="col-sm-6">
                 <h1 class="m-0">Dashboard Hidroponik</h1>
-            </div><!-- /.col -->
+            </div>
             <div class="col-sm-6">
                 <ol class="breadcrumb float-sm-right">
                     <li class="breadcrumb-item"><a href="#">Home</a></li>
                     <li class="breadcrumb-item active">Hidroponik</li>
                 </ol>
-            </div><!-- /.col -->
-        </div><!-- /.row -->
-    </div><!-- /.container-fluid -->
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Main content -->
@@ -64,7 +64,7 @@
         </div>
         <!-- /.row -->
 
-        <!-- Row for charts or additional info -->
+        <!-- Row for charts -->
         <div class="row">
             <div class="col-md-6">
                 <div class="card">
@@ -131,12 +131,12 @@
             </div>
         </div>
 
-        <!-- Tabel data terbaru atau log -->
+        <!-- Tabel riwayat sensor -->
         <div class="row">
             <div class="col-12">
                 <div class="card">
                     <div class="card-header">
-                        <h3 class="card-title">Riwayat Pembacaan Sensor</h3>
+                        <h3 class="card-title">Riwayat Pembacaan Sensor (10 Terakhir)</h3>
                         <div class="card-tools">
                             <button type="button" class="btn btn-tool" data-card-widget="collapse">
                                 <i class="fas fa-minus"></i>
@@ -155,7 +155,7 @@
                                 </tr>
                             </thead>
                             <tbody>
- 
+                                <!-- Data akan diisi oleh JavaScript -->
                             </tbody>
                         </table>
                     </div>
@@ -171,51 +171,64 @@
 <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
 <!-- ChartJS -->
 <script src="{{ url_for('static', filename='plugins/chart.js/Chart.min.js') }}"></script>
+<!-- Toastr untuk notifikasi -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
 <script>
 /**
  * IoT Hidroponik - Dashboard Real-time
- * Menggunakan Socket.IO untuk menerima update sensor secara live.
  * Fitur:
  * - Update nilai sensor pada info boxes
  * - Update grafik dengan data rolling (24 titik)
  * - Tambah baris baru pada tabel riwayat (max 10 baris)
+ * - Notifikasi real-time via Toastr
  */
 
 $(document).ready(function() {
-    // ========== KONFIGURASI ==========
-    const MAX_CHART_POINTS = 24;          // Jumlah titik pada grafik (24 jam)
-    const MAX_TABLE_ROWS = 10;             // Maksimal baris pada tabel riwayat
+    // ========== KONFIGURASI TOASTR ==========
+    toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": true,
+        "progressBar": true,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "300",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+    };
 
-    // Inisialisasi label waktu (24 jam terakhir, format jam)
+    // ========== KONFIGURASI DASHBOARD ==========
+    const MAX_CHART_POINTS = 24;
+    const MAX_TABLE_ROWS = 10;
+
+    // Label waktu (24 jam)
     const labels = [];
     for (let i = 0; i < MAX_CHART_POINTS; i++) {
         labels.push(i.toString().padStart(2, '0') + ':00');
     }
 
-    // Data array untuk setiap sensor (akan diisi dengan data awal)
+    // Data array untuk setiap sensor
     let phData = new Array(MAX_CHART_POINTS).fill(0);
     let tdsData = new Array(MAX_CHART_POINTS).fill(0);
     let suhuData = new Array(MAX_CHART_POINTS).fill(0);
     let humData = new Array(MAX_CHART_POINTS).fill(0);
 
-    // Nilai terbaru (untuk info box)
-    let latestValues = {
-        ph: 0,
-        tds: 0,
-        suhu: 0,
-        kelembapan: 0
+    const latestValues = {
+        ph: null,
+        tds: null,
+        suhu: null,
+        kelembapan: null
     };
 
     // ========== FUNGSI UTILITY ==========
-    /**
-     * Membuat grafik line Chart.js
-     * @param {string} canvasId - ID elemen canvas
-     * @param {string} label - Label dataset
-     * @param {Array} data - Array data numerik
-     * @param {string} borderColor - Warna garis
-     * @param {string} backgroundColor - Warna area (fill)
-     * @returns {Chart} Instance Chart.js
-     */
     function createChart(canvasId, label, data, borderColor, backgroundColor) {
         const ctx = document.getElementById(canvasId).getContext('2d');
         return new Chart(ctx, {
@@ -238,40 +251,20 @@ $(document).ready(function() {
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    y: {
-                        beginAtZero: false,
-                        grid: { color: 'rgba(0,0,0,0.05)' }
-                    },
-                    x: {
-                        ticks: { maxRotation: 45, minRotation: 45, autoSkip: true, maxTicksLimit: 12 }
-                    }
+                    y: { beginAtZero: false, grid: { color: 'rgba(0,0,0,0.05)' } },
+                    x: { ticks: { maxRotation: 45, minRotation: 45, autoSkip: true, maxTicksLimit: 12 } }
                 },
-                plugins: {
-                    legend: { display: false },
-                    tooltip: { mode: 'index', intersect: false }
-                }
+                plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } }
             }
         });
     }
 
-    /**
-     * Memperbarui data grafik dengan nilai baru (rolling window)
-     * @param {Chart} chartInstance - Instance Chart.js
-     * @param {Array} dataArray - Array data yang akan diupdate
-     * @param {number} newValue - Nilai baru
-     */
     function updateChartData(chartInstance, dataArray, newValue) {
         dataArray.push(newValue);
-        dataArray.shift();                // Hapus data tertua
-        chartInstance.update();           // Render ulang grafik
+        dataArray.shift();
+        chartInstance.update();
     }
 
-    /**
-     * Memperbarui info box dengan nilai terbaru
-     * @param {string} sensorType - 'ph', 'tds', 'suhu', 'kelembapan'
-     * @param {number} value - Nilai sensor
-     * @param {string} unit - Satuan (opsional)
-     */
     function updateInfoBox(sensorType, value, unit = '') {
         const elementId = `${sensorType}-value`;
         const displayValue = unit ? `${value} ${unit}` : value;
@@ -279,10 +272,6 @@ $(document).ready(function() {
         latestValues[sensorType] = value;
     }
 
-    /**
-     * Menambahkan baris baru ke tabel riwayat
-     * @param {Object} data - Objek berisi { ph, tds, suhu, kelembapan, timestamp }
-     */
     function addTableRow(data) {
         const timestamp = data.timestamp ? new Date(data.timestamp).toLocaleString() : new Date().toLocaleString();
         const row = `
@@ -295,7 +284,6 @@ $(document).ready(function() {
             </tr>
         `;
         $('#sensor-table tbody').prepend(row);
-        // Batasi jumlah baris
         while ($('#sensor-table tbody tr').length > MAX_TABLE_ROWS) {
             $('#sensor-table tbody tr:last').remove();
         }
@@ -307,53 +295,67 @@ $(document).ready(function() {
     const suhuChart = createChart('suhuChart', 'Suhu (°C)', suhuData, 'rgba(255, 193, 7, 1)', 'rgba(255, 193, 7, 0.1)');
     const humChart = createChart('kelembapanChart', 'Kelembapan (%)', humData, 'rgba(220, 53, 69, 1)', 'rgba(220, 53, 69, 0.1)');
 
-    // ========== KONEKSI WEBSOCKET (SOCKET.IO) ==========
-    const socket = io(); // Otomatis terhubung ke server yang sama
+    // ========== KONEKSI WEBSOCKET ==========
+    const socket = io();
 
-    // Event: koneksi berhasil
     socket.on('connect', function() {
-        console.log('[Socket] Terhubung ke server');
-        // Minta data awal (opsional)
+        console.log('[Socket] ✓ Terhubung ke server');
+        toastr.success('Terhubung ke server real-time', 'Koneksi');
+        // Minta data awal
         socket.emit('message', { type: 'sensor_request', content: {} });
     });
 
-    // Event: koneksi terputus
     socket.on('disconnect', function() {
-        console.warn('[Socket] Terputus, mencoba reconnect...');
+        console.warn('[Socket] ✗ Terputus');
+        toastr.warning('Koneksi terputus, mencoba reconnect...', 'Koneksi');
     });
 
-    // Event: update sensor dari server (format dari broadcast_sensor_data)
+    // Mapping dari backend → frontend
+    const sensorMap = {
+        temperature: 'suhu',
+        humidity: 'kelembapan',
+        tds: 'tds',
+        ph: 'ph'
+    };
+
+    // Event: update sensor
     socket.on('sensor_update', function(data) {
         console.log('[Socket] Sensor update:', data);
 
-        const sensorType = data.sensor_type;
+        const rawType = data.sensor_type;
+        const sensorType = sensorMap[rawType] || rawType; // mapping disini
         const value = data.value;
         const unit = data.unit || '';
 
-        // Update info box dan grafik berdasarkan jenis sensor
         switch (sensorType) {
             case 'ph':
                 updateInfoBox('ph', value, unit);
                 updateChartData(phChart, phData, value);
+                latestValues.ph = value;
                 break;
+
             case 'tds':
                 updateInfoBox('tds', value, unit);
                 updateChartData(tdsChart, tdsData, value);
+                latestValues.tds = value;
                 break;
+
             case 'suhu':
                 updateInfoBox('suhu', value, unit);
                 updateChartData(suhuChart, suhuData, value);
+                latestValues.suhu = value;
                 break;
+
             case 'kelembapan':
                 updateInfoBox('kelembapan', value, unit);
                 updateChartData(humChart, humData, value);
+                latestValues.kelembapan = value;
                 break;
+
             default:
-                console.warn('[Socket] Tipe sensor tidak dikenal:', sensorType);
+                console.warn('[Socket] Tipe sensor tidak dikenal:', rawType);
         }
 
-        // Setelah semua nilai diperbarui, tambahkan baris baru ke tabel
-        // (menggunakan nilai terbaru dari latestValues)
         addTableRow({
             timestamp: data.timestamp,
             ph: latestValues.ph,
@@ -363,26 +365,74 @@ $(document).ready(function() {
         });
     });
 
-    // Event: notifikasi (opsional)
-    socket.on('notification', function(data) {
-        console.log('[Socket] Notifikasi:', data.message);
-        // Tampilkan toast atau alert (opsional)
-        if (data.type === 'warning') {
-            toastr.warning(data.message);
-        } else if (data.type === 'error') {
-            toastr.error(data.message);
+    // ========== NOTIFIKASI ==========
+    // Handler untuk berbagai format notifikasi
+    function showNotification(data) {
+        console.log('[Socket] Notifikasi:', data);
+
+        let message = '';
+        let type = 'info';
+
+        // Ekstrak pesan dari berbagai kemungkinan format
+        if (typeof data === 'string') {
+            message = data;
+        } else if (data.message) {
+            message = data.message;
+        } else if (data.msg) {
+            message = data.msg;
+        } else if (data.text) {
+            message = data.text;
         } else {
-            toastr.info(data.message);
+            message = JSON.stringify(data);
         }
-    });
+
+        // Ekstrak tipe notifikasi
+        if (data.type) type = data.type;
+        else if (data.level) type = data.level;
+
+        // Tampilkan notifikasi dengan toastr
+        switch(type) {
+            case 'warning':
+                toastr.warning(message, '⚠️ Peringatan');
+                break;
+            case 'error':
+                toastr.error(message, '❌ Error');
+                break;
+            case 'success':
+                toastr.success(message, '✅ Sukses');
+                break;
+            default:
+                toastr.info(message, 'ℹ️ Informasi');
+        }
+    }
+
+    // Daftarkan event untuk notifikasi
+    socket.on('notification', showNotification);
+    socket.on('notify', showNotification);
+    socket.on('alert', showNotification);
 
     // Event: actuator update (opsional)
     socket.on('actuator_update', function(data) {
         console.log('[Socket] Aktuator update:', data);
-        // Bisa ditampilkan di UI jika diperlukan
+        toastr.info(`${data.actuator}: ${data.status}`, 'Aktuator');
     });
 
-    // ========== INISIALISASI TABEL DENGAN DATA AWAL (contoh) ==========
+    // ========== TEST NOTIFIKASI ==========
+    window.testNotification = function() {
+        console.log('Mengirim test notifikasi...');
+        // Kirim notifikasi ke server (akan dibroadcast ke semua client)
+        socket.emit('message', {
+            type: 'notification',
+            content: {
+                message: 'Test notifikasi dari dashboard!',
+                type: 'info'
+            }
+        });
+        // Notifikasi lokal sebagai konfirmasi
+        toastr.info('Notifikasi test dikirim ke server', 'Test');
+    };
+
+    // ========== DATA AWAL ==========
     const initialData = [
         { timestamp: '2025-03-16 08:00', ph: 6.8, tds: 850, suhu: 25.5, kelembapan: 72 },
         { timestamp: '2025-03-16 07:00', ph: 6.7, tds: 845, suhu: 25.2, kelembapan: 73 },
@@ -391,18 +441,10 @@ $(document).ready(function() {
     ];
     initialData.forEach(row => addTableRow(row));
 
-    // Opsional: Bersihkan console dari log berlebihan (jika tidak perlu)
-    // console.log('Dashboard real-time siap!');
+    // Notifikasi selamat datang
+    setTimeout(() => {
+        toastr.info('Dashboard siap menerima data real-time', 'Siap');
+    }, 2000);
 });
-</script>
-<!-- Optional: Toastr untuk notifikasi (jika ingin notifikasi lebih menarik) -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
-<script>
-    // Konfigurasi toastr (opsional)
-    toastr.options = {
-        "positionClass": "toast-top-right",
-        "timeOut": "3000"
-    };
 </script>
 {% endblock %}

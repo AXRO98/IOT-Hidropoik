@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 
+
 class Config(object):
     SECRET_KEY = os.getenv("SECRET_KEY", "fallback-secret-key")
     BASE_DIR = Path(__file__).resolve().parent.parent
@@ -16,6 +17,29 @@ class Config(object):
     DATABASE = DB_DIR / "database.db"
     
     # ================================================
+    # MQTT CONFIGURATION
+    # ================================================
+    MQTT_BROKER_URL = os.getenv('MQTT_BROKER_URL', None)
+    MQTT_BROKER_PORT = int(os.getenv('MQTT_BROKER_PORT', 1883))
+    MQTT_USERNAME = os.getenv('MQTT_USERNAME', None)
+    MQTT_PASSWORD = os.getenv('MQTT_PASSWORD', None)
+    MQTT_CLIENT_ID = os.getenv('MQTT_CLIENT_ID', 'server-webs')
+    MQTT_KEEPALIVE = int(os.getenv('MQTT_KEEPALIVE', 60))
+   
+    # ================================================
+    # MQTT TOPIC STRUCTURE (CONSISTENT)
+    # ================================================
+    MQTT_TOPIC_BASE = "sensors"
+
+    MQTT_TOPIC_TEMPERATURE = f"{MQTT_TOPIC_BASE}/temperature"
+    MQTT_TOPIC_HUMIDITY    = f"{MQTT_TOPIC_BASE}/humidity"
+    MQTT_TOPIC_PH          = f"{MQTT_TOPIC_BASE}/ph"
+    MQTT_TOPIC_TDS         = f"{MQTT_TOPIC_BASE}/tds"
+
+    # Subscribe semua sensor
+    MQTT_TOPIC_ALL = f"{MQTT_TOPIC_BASE}/+"
+
+    # ================================================
     # WEBSOCKET CONFIGURATION
     # ================================================
     SOCKETIO_CORS_ALLOWED = os.getenv("SOCKETIO_CORS_ALLOWED", "*")
@@ -25,25 +49,16 @@ class Config(object):
     # ================================================
     # SIMULATION MODE (untuk development tanpa MQTT broker)
     # ================================================
-    ENABLE_SIMULATION = os.getenv("ENABLE_SIMULATION", "True") == "True"
-    SIMULATION_INTERVAL = int(os.getenv("SIMULATION_INTERVAL", 1))  # detik per sensor
+    ENABLE_SIMULATION = os.getenv("ENABLE_SIMULATION", "False") == "True"
+    SIMULATION_INTERVAL = int(os.getenv("SIMULATION_INTERVAL", 1))
 
 
 class Debug(Config):
     DEBUG = True
     SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key")
     
-    # Development specific MQTT (bisa pakai broker lokal atau test)
-    MQTT_BROKER = os.getenv("DEV_MQTT_BROKER", "localhost")
-    MQTT_PORT = int(os.getenv("DEV_MQTT_PORT", 1883))
-    MQTT_USERNAME = os.getenv("DEV_MQTT_USERNAME", "")
-    MQTT_PASSWORD = os.getenv("DEV_MQTT_PASSWORD", "")
-    
     # Di development, kita bisa matikan auto-connect jika tidak ada broker
     MQTT_AUTO_CONNECT = os.getenv("DEV_MQTT_AUTO_CONNECT", "False") == "True"
-    
-    # Aktifkan simulasi di development jika MQTT tidak terhubung
-    ENABLE_SIMULATION = os.getenv("DEV_ENABLE_SIMULATION", "True") == "True"
     
     # Development WebSocket (allow all origins for testing)
     SOCKETIO_CORS_ALLOWED = os.getenv("DEV_SOCKETIO_CORS_ALLOWED", "*")
@@ -73,26 +88,8 @@ class Production(Config):
     LOG_LEVEL = "WARNING"
 
 
-class Testing(Config):
-    """Testing configuration (opsional)"""
-    TESTING = True
-    DEBUG = True
-    
-    # Use in-memory database for testing
-    DATABASE = ":memory:"
-    
-    # Disable MQTT for testing
-    MQTT_AUTO_CONNECT = False
-    ENABLE_SIMULATION = False
-    
-    # Test WebSocket
-    SOCKETIO_CORS_ALLOWED = "*"
-
 
 config_dict = {
-    "Debug": Debug,
     "Production": Production,
-    "Testing": Testing,
-    "Development": Debug,  # Alias untuk Debug
-    "Prod": Production      # Alias untuk Production
+    "Development": Debug # Alias untuk Debug
 }
